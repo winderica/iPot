@@ -9,6 +9,8 @@ import {
   ListItem,
   Slider,
   Snackbar,
+  StyledEngineProvider,
+  ThemeProvider,
   Typography,
 } from '@material-ui/core';
 import {
@@ -29,6 +31,7 @@ import { Event, Status } from '../constants/enums';
 import { Port } from '../constants/types';
 import { useAsyncEffect } from '../hooks/useAsyncEffect';
 import { useStyles } from '../styles/options';
+import { useTheme } from '../styles/theme';
 import { Lyric, parseLrc } from '../utils/lrc';
 
 const port: Port = browser.runtime.connect();
@@ -40,6 +43,7 @@ interface Music {
 }
 
 export const Options: FC = () => {
+  const theme = useTheme();
   const lyricContainer = useRef<HTMLDivElement>(null);
   const [musics, setMusics] = useState<Music[]>([]);
   const [index, setIndex] = useReducer((prevIndex: number, [index, isDelta]: [number, boolean?]) => {
@@ -195,88 +199,93 @@ export const Options: FC = () => {
     });
   };
   return (
-    <>
-      <CssBaseline />
-      <Snackbar open={shouldPrompt} autoHideDuration={null}>
-        <Alert severity='info' action={<Button onClick={async () => {
-          const directory = await get<FileSystemDirectoryHandle>('handle');
-          if (directory) {
-            await directory.requestPermission({ mode: 'read' });
-          } else {
-            await set('handle', await window.showDirectoryPicker());
-          }
-          setShouldPrompt(false);
-        }}>load</Button>}>load</Alert>
-      </Snackbar>
-      <Grid container direction='column' wrap='nowrap' height='100vh' overflow='hidden'>
-        <Grid container item minHeight={0} height='100%'>
-          <Grid item xs={9} height='100%' overflow='auto'>
-            <List>
-              {musics.map((music, index) => (
-                <ListItem button key={index} onClick={() => setIndex([index])}>{music.name}</ListItem>
-              ))}
-            </List>
+    <StyledEngineProvider injectFirst>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Snackbar open={shouldPrompt} autoHideDuration={null}>
+          <Alert severity='info' classes={{
+            root: classes.alert,
+            action: classes.alertAction,
+          }} action={<Button size='small' onClick={async () => {
+            const directory = await get<FileSystemDirectoryHandle>('handle');
+            if (directory) {
+              await directory.requestPermission({ mode: 'read' });
+            } else {
+              await set('handle', await window.showDirectoryPicker());
+            }
+            setShouldPrompt(false);
+          }}>load</Button>}>load</Alert>
+        </Snackbar>
+        <Grid container direction='column' wrap='nowrap' height='100vh' overflow='hidden'>
+          <Grid container item minHeight={0} height='100%'>
+            <Grid item xs={9} height='100%' overflow='auto'>
+              <List>
+                {musics.map((music, index) => (
+                  <ListItem button key={index} onClick={() => setIndex([index])}>{music.name}</ListItem>
+                ))}
+              </List>
+            </Grid>
+            <Grid item xs={3} height='100%' overflow='hidden'>
+              <Box ref={lyricContainer} py='50vh'>
+                {lyric?.lines.map(({ content, words }, i) => (
+                  <Typography key={i} align='center' data-time={words[0].time}>{content}</Typography>
+                ))}
+              </Box>
+            </Grid>
           </Grid>
-          <Grid item xs={3} height='100%' overflow='hidden'>
-            <Box ref={lyricContainer} py='50vh'>
-              {lyric?.lines.map(({ content, words }, i) => (
-                <Typography key={i} align='center' data-time={words[0].time}>{content}</Typography>
-              ))}
-            </Box>
+          <Grid container item alignItems='center'>
+            <Grid item>
+              <IconButton onClick={() => setIndex([-1, true])}>
+                <SkipPrevious />
+              </IconButton>
+            </Grid>
+            <Grid item>
+              <IconButton onClick={() => changeTime(currentTime - 10)}>
+                <Replay10 />
+              </IconButton>
+            </Grid>
+            <Grid item>
+              <IconButton onClick={toggleStatus}>
+                {playing ? <Pause /> : <PlayArrow />}
+              </IconButton>
+            </Grid>
+            <Grid item>
+              <IconButton onClick={() => changeTime(currentTime + 10)}>
+                <Forward10 />
+              </IconButton>
+            </Grid>
+            <Grid item>
+              <IconButton onClick={() => setIndex([1, true])}>
+                <SkipNext />
+              </IconButton>
+            </Grid>
+            <Grid item>
+              <IconButton onClick={toggleMuted}>
+                {muted || !volume ? <VolumeMute /> : <VolumeUp />}
+              </IconButton>
+            </Grid>
+            <Grid item container xs={1} p={1}>
+              <Slider
+                value={muted ? 0 : volume}
+                min={0}
+                max={1}
+                step={0.05}
+                onChange={(_, value) => !Array.isArray(value) && changeVolume(value)}
+                valueLabelDisplay='auto'
+              />
+            </Grid>
+            <Grid item container xs p={1}>
+              <Slider
+                value={currentTime}
+                min={0}
+                max={totalTime}
+                onChange={(_, value) => !Array.isArray(value) && changeTime(value)}
+                valueLabelDisplay='auto'
+              />
+            </Grid>
           </Grid>
         </Grid>
-        <Grid container item alignItems='center'>
-          <Grid item>
-            <IconButton onClick={() => setIndex([-1, true])}>
-              <SkipPrevious />
-            </IconButton>
-          </Grid>
-          <Grid item>
-            <IconButton onClick={() => changeTime(currentTime - 10)}>
-              <Replay10 />
-            </IconButton>
-          </Grid>
-          <Grid item>
-            <IconButton onClick={toggleStatus}>
-              {playing ? <Pause /> : <PlayArrow />}
-            </IconButton>
-          </Grid>
-          <Grid item>
-            <IconButton onClick={() => changeTime(currentTime + 10)}>
-              <Forward10 />
-            </IconButton>
-          </Grid>
-          <Grid item>
-            <IconButton onClick={() => setIndex([1, true])}>
-              <SkipNext />
-            </IconButton>
-          </Grid>
-          <Grid item>
-            <IconButton onClick={toggleMuted}>
-              {muted || !volume ? <VolumeMute /> : <VolumeUp />}
-            </IconButton>
-          </Grid>
-          <Grid item container xs={1} p={1}>
-            <Slider
-              value={muted ? 0 : volume}
-              min={0}
-              max={1}
-              step={0.05}
-              onChange={(_, value) => !Array.isArray(value) && changeVolume(value)}
-              valueLabelDisplay='auto'
-            />
-          </Grid>
-          <Grid item container xs p={1}>
-            <Slider
-              value={currentTime}
-              min={0}
-              max={totalTime}
-              onChange={(_, value) => !Array.isArray(value) && changeTime(value)}
-              valueLabelDisplay='auto'
-            />
-          </Grid>
-        </Grid>
-      </Grid>
-    </>
+      </ThemeProvider>
+    </StyledEngineProvider>
   );
 };
