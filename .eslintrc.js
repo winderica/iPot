@@ -20,7 +20,7 @@ module.exports = {
     'plugin:@typescript-eslint/recommended-requiring-type-checking',
   ],
   rules: {
-    indent: ['warn', 2],
+    indent: ['warn', 2, { SwitchCase: 1 }],
     'max-len': ['warn', { code: 120 }],
     'quote-props': ['warn', 'as-needed'],
     'jsx-quotes': ['warn', 'prefer-single'],

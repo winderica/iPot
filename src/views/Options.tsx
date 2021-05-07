@@ -87,29 +87,29 @@ export const Options: FC = () => {
   useEffect(() => {
     port.onMessage.addListener((m) => {
       switch (m.event) {
-      case Event.totalTime:
-        setTotalTime(m.payload);
-        break;
-      case Event.currentTime:
-        setCurrentTime(m.payload);
-        setHighlighted(m.payload * 1000);
-        break;
-      case Event.status:
-        switch (m.payload) {
-        case Status.playing:
-          setPlaying(true);
+        case Event.totalTime:
+          setTotalTime(m.payload);
           break;
-        case Status.paused:
-          setPlaying(false);
+        case Event.currentTime:
+          setCurrentTime(m.payload);
+          setHighlighted(m.payload * 1000);
           break;
-        case Status.ended:
-          setPlaying(false);
-          setIndex([1, true]);
-        }
-        break;
-      case Event.volume:
-        setVolume(m.payload);
-        break;
+        case Event.status:
+          switch (m.payload) {
+            case Status.playing:
+              setPlaying(true);
+              break;
+            case Status.paused:
+              setPlaying(false);
+              break;
+            case Status.ended:
+              setPlaying(false);
+              setIndex([1, true]);
+          }
+          break;
+        case Event.volume:
+          setVolume(m.payload);
+          break;
       }
     });
     port.postMessage({
