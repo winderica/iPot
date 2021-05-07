@@ -1,45 +1,47 @@
 import React, { FC, useEffect, useRef, useState } from 'react';
-import { browser, Runtime } from 'webextension-polyfill-ts';
+import { browser } from 'webextension-polyfill-ts';
 
+import { Event, Status } from '../constants/enums';
+import { Port } from '../constants/types';
 import { usePrevious } from '../hooks/usePrevious';
 
 export const Background: FC = () => {
   const ref = useRef<HTMLAudioElement>(null);
   const [src, setSrc] = useState<string>();
   const prevSrc = usePrevious(src);
-  const [port, setPort] = useState<Runtime.Port>();
+  const [port, setPort] = useState<Port>();
   useEffect(() => {
-    browser.runtime.onConnect.addListener((port) => {
+    browser.runtime.onConnect.addListener((port: Port) => {
       setPort(port);
-      port.onMessage.addListener(async ({ event, payload }) => {
+      port.onMessage.addListener(async (m) => {
         if (!ref.current) {
           return;
         }
-        switch (event) {
-        case 'ping':
+        switch (m.event) {
+        case Event.ping:
           port.postMessage({
-            event: 'status',
-            payload: ref.current.paused ? 'paused' : 'playing',
+            event: Event.status,
+            payload: ref.current.paused ? Status.paused : Status.playing,
           });
           port.postMessage({
-            event: 'totalTime',
+            event: Event.totalTime,
             payload: ref.current.duration,
           });
           port.postMessage({
-            event: 'currentTime',
+            event: Event.currentTime,
             payload: ref.current.currentTime,
           });
           port.postMessage({
-            event: 'volume',
+            event: Event.volume,
             payload: ref.current.volume,
           });
           break;
-        case 'load':
+        case Event.load:
           prevSrc && URL.revokeObjectURL(prevSrc);
-          setSrc(payload);
+          setSrc(m.payload);
           await ref.current.play();
           break;
-        case 'parse':
+        case Event.parse:
           // for await (const [name, handle] of (await get<FileSystemDirectoryHandle>('handle'))!.entries()) {
           //   if (handle.kind === 'directory') {
           //     continue;
@@ -49,17 +51,17 @@ export const Background: FC = () => {
           //   }
           // }
           break;
-        case 'currentTime':
-          ref.current.currentTime = payload;
+        case Event.currentTime:
+          ref.current.currentTime = m.payload;
           break;
-        case 'play':
+        case Event.play:
           await ref.current.play();
           break;
-        case 'pause':
+        case Event.pause:
           ref.current.pause();
           break;
-        case 'volume':
-          ref.current.volume = payload;
+        case Event.volume:
+          ref.current.volume = m.payload;
           break;
         }
       });
@@ -73,23 +75,23 @@ export const Background: FC = () => {
       src={src}
       ref={ref}
       onPlay={() => port?.postMessage(({
-        event: 'status',
-        payload: 'playing',
+        event: Event.status,
+        payload: Status.playing,
       }))}
       onPause={() => port?.postMessage({
-        event: 'status',
-        payload: 'paused',
+        event: Event.status,
+        payload: Status.paused,
       })}
       onEnded={() => port?.postMessage({
-        event: 'status',
-        payload: 'ended',
+        event: Event.status,
+        payload: Status.ended,
       })}
       onDurationChange={(event) => port?.postMessage({
-        event: 'totalTime',
+        event: Event.totalTime,
         payload: event.currentTarget.duration,
       })}
       onTimeUpdate={(event) => port?.postMessage({
-        event: 'currentTime',
+        event: Event.currentTime,
         payload: event.currentTarget.currentTime,
       })}
     />

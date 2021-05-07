@@ -1,5 +1,6 @@
 import {
-  Alert, Box,
+  Alert,
+  Box,
   Button,
   CssBaseline,
   Grid,
@@ -24,11 +25,13 @@ import { get, set } from 'idb-keyval';
 import React, { FC, useEffect, useReducer, useRef, useState } from 'react';
 import { browser } from 'webextension-polyfill-ts';
 
+import { Event, Status } from '../constants/enums';
+import { Port } from '../constants/types';
 import { useAsyncEffect } from '../hooks/useAsyncEffect';
 import { useStyles } from '../styles/options';
 import { Lyric, parseLrc } from '../utils/lrc';
 
-const port = browser.runtime.connect();
+const port: Port = browser.runtime.connect();
 
 interface Music {
   name: string;
@@ -82,35 +85,35 @@ export const Options: FC = () => {
     return -1;
   }, -1);
   useEffect(() => {
-    port.onMessage.addListener(({ event, payload }) => {
-      switch (event) {
-      case 'totalTime':
-        setTotalTime(payload);
+    port.onMessage.addListener((m) => {
+      switch (m.event) {
+      case Event.totalTime:
+        setTotalTime(m.payload);
         break;
-      case 'currentTime':
-        setCurrentTime(payload);
-        setHighlighted(payload * 1000);
+      case Event.currentTime:
+        setCurrentTime(m.payload);
+        setHighlighted(m.payload * 1000);
         break;
-      case 'status':
-        switch (payload) {
-        case 'playing':
+      case Event.status:
+        switch (m.payload) {
+        case Status.playing:
           setPlaying(true);
           break;
-        case 'paused':
+        case Status.paused:
           setPlaying(false);
           break;
-        case 'ended':
+        case Status.ended:
           setPlaying(false);
           setIndex([1, true]);
         }
         break;
-      case 'volume':
-        setVolume(payload);
+      case Event.volume:
+        setVolume(m.payload);
         break;
       }
     });
     port.postMessage({
-      event: 'ping',
+      event: Event.ping,
     });
   }, []);
   useAsyncEffect(async () => {
@@ -138,7 +141,7 @@ export const Options: FC = () => {
       lyricFile: lyrics[name],
     })));
     port.postMessage({
-      event: 'parse',
+      event: Event.parse,
     });
   }, [shouldPrompt]);
   useAsyncEffect(async () => {
@@ -148,7 +151,7 @@ export const Options: FC = () => {
     const { lyricFile, musicFile } = musics[index];
     setLyric(lyricFile ? parseLrc(await (await lyricFile.getFile()).text()) : undefined);
     port.postMessage({
-      event: 'load',
+      event: Event.load,
       payload: URL.createObjectURL(await musicFile.getFile()),
     });
     lyricContainer.current?.children[0]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -160,7 +163,7 @@ export const Options: FC = () => {
       }
       time = Math.min(Math.max(time, 0), totalTime);
       port.postMessage({
-        event: 'currentTime',
+        event: Event.currentTime,
         payload: time,
       });
       return time;
@@ -169,7 +172,7 @@ export const Options: FC = () => {
   const changeVolume = (volume: number) => {
     setVolume(() => {
       port.postMessage({
-        event: 'volume',
+        event: Event.volume,
         payload: volume,
       });
       return volume;
@@ -178,14 +181,14 @@ export const Options: FC = () => {
   };
   const toggleStatus = () => {
     index >= 0 && setPlaying((prevPlaying) => {
-      port.postMessage({ event: prevPlaying ? 'pause' : 'play' });
+      port.postMessage({ event: prevPlaying ? Event.pause : Event.play });
       return !prevPlaying;
     });
   };
   const toggleMuted = () => {
     setMuted((prevMuted) => {
       port.postMessage({
-        event: 'volume',
+        event: Event.volume,
         payload: prevMuted ? volume : 0,
       });
       return !prevMuted;
