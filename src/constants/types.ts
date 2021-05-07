@@ -16,11 +16,17 @@ type Message =
   | M<Event.volume, number>
   | M<Event.ping, void>
   | M<Event.parse, void>
-  | M<Event.load, string>
+  | M<Event.load, void>
   | M<Event.play, void>
   | M<Event.pause, void>;
 
 export interface Port extends Runtime.Port {
   onMessage: Events.Event<(message: Message, port: Port) => void | Promise<void>>;
   postMessage(message: Message): void;
+}
+
+export interface Music {
+  name: string;
+  musicFile: FileSystemFileHandle;
+  lyricFile?: FileSystemFileHandle;
 }

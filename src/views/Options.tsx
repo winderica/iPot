@@ -23,24 +23,18 @@ import {
   VolumeMute,
   VolumeUp,
 } from '@material-ui/icons';
-import { get, set } from 'idb-keyval';
+import { del, get, set } from 'idb-keyval';
 import React, { FC, useEffect, useReducer, useRef, useState } from 'react';
 import { browser } from 'webextension-polyfill-ts';
 
 import { Event, Status } from '../constants/enums';
-import { Port } from '../constants/types';
+import { Music, Port } from '../constants/types';
 import { useAsyncEffect } from '../hooks/useAsyncEffect';
 import { useStyles } from '../styles/options';
 import { useTheme } from '../styles/theme';
 import { Lyric, parseLrc } from '../utils/lrc';
 
 const port: Port = browser.runtime.connect();
-
-interface Music {
-  name: string;
-  musicFile: FileSystemFileHandle;
-  lyricFile?: FileSystemFileHandle;
-}
 
 export const Options: FC = () => {
   const theme = useTheme();
@@ -50,7 +44,13 @@ export const Options: FC = () => {
     if (isDelta) {
       index = prevIndex + index;
     }
-    return musics[index] ? index : -1;
+    if (musics[index]) {
+      void set('last', musics[index]);
+      return index;
+    } else {
+      void del('last');
+      return -1;
+    }
   }, -1);
   const [playing, setPlaying] = useState(false);
   const [lyric, setLyric] = useState<Lyric>();
@@ -139,11 +139,17 @@ export const Options: FC = () => {
         musics[name] = handle;
       }
     }
-    setMusics(Object.entries(musics).map(([name, musicFile]) => ({
-      name,
-      musicFile,
-      lyricFile: lyrics[name],
-    })));
+    const last = await get<Music>('last');
+    setMusics(Object.entries(musics).map(([name, musicFile], index) => {
+      if (last?.name === name) {
+        setIndex([index]);
+      }
+      return {
+        name,
+        musicFile,
+        lyricFile: lyrics[name],
+      };
+    }));
     port.postMessage({
       event: Event.parse,
     });
@@ -152,11 +158,10 @@ export const Options: FC = () => {
     if (!musics[index]) {
       return;
     }
-    const { lyricFile, musicFile } = musics[index];
+    const { lyricFile } = musics[index];
     setLyric(lyricFile ? parseLrc(await (await lyricFile.getFile()).text()) : undefined);
     port.postMessage({
       event: Event.load,
-      payload: URL.createObjectURL(await musicFile.getFile()),
     });
     lyricContainer.current?.children[0]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [musics, index]);

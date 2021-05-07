@@ -1,18 +1,18 @@
+import { get } from 'idb-keyval';
 import React, { FC, useEffect, useRef, useState } from 'react';
 import { browser } from 'webextension-polyfill-ts';
 
 import { Event, Status } from '../constants/enums';
-import { Port } from '../constants/types';
-import { usePrevious } from '../hooks/usePrevious';
+import { Music, Port } from '../constants/types';
 
 export const Background: FC = () => {
   const ref = useRef<HTMLAudioElement>(null);
   const [src, setSrc] = useState<string>();
-  const prevSrc = usePrevious(src);
-  const [port, setPort] = useState<Port>();
+  const [, setPlaying] = useState<string>();
+  const [ports, setPorts] = useState(new Set<Port>());
   useEffect(() => {
     browser.runtime.onConnect.addListener((port: Port) => {
-      setPort(port);
+      setPorts((prevPorts) => new Set(prevPorts.add(port)));
       port.onMessage.addListener(async (m) => {
         if (!ref.current) {
           return;
@@ -36,11 +36,25 @@ export const Background: FC = () => {
               payload: ref.current.volume,
             });
             break;
-          case Event.load:
-            prevSrc && URL.revokeObjectURL(prevSrc);
-            setSrc(m.payload);
+          case Event.load: {
+            const last = await get<Music>('last');
+            if (!last) {
+              break;
+            }
+            const file = await last.musicFile.getFile();
+            setPlaying((prevPlaying) => {
+              if (last.name === prevPlaying) {
+                return prevPlaying;
+              }
+              setSrc((prevSrc) => {
+                prevSrc && URL.revokeObjectURL(prevSrc);
+                return URL.createObjectURL(file);
+              });
+              return last.name;
+            });
             await ref.current.play();
             break;
+          }
           case Event.parse:
             // for await (const [name, handle] of (await get<FileSystemDirectoryHandle>('handle'))!.entries()) {
             //   if (handle.kind === 'directory') {
@@ -66,7 +80,10 @@ export const Background: FC = () => {
         }
       });
       port.onDisconnect.addListener(() => {
-        setPort(undefined);
+        setPorts((prevPorts) => {
+          prevPorts.delete(port);
+          return new Set(prevPorts);
+        });
       });
     });
   }, []);
@@ -74,26 +91,26 @@ export const Background: FC = () => {
     <audio
       src={src}
       ref={ref}
-      onPlay={() => port?.postMessage(({
+      onPlay={() => ports.forEach((port) => port.postMessage({
         event: Event.status,
         payload: Status.playing,
       }))}
-      onPause={() => port?.postMessage({
+      onPause={() => ports.forEach((port) => port.postMessage({
         event: Event.status,
         payload: Status.paused,
-      })}
-      onEnded={() => port?.postMessage({
+      }))}
+      onEnded={() => ports.forEach((port) => port.postMessage({
         event: Event.status,
         payload: Status.ended,
-      })}
-      onDurationChange={(event) => port?.postMessage({
+      }))}
+      onDurationChange={(event) => ports.forEach((port) => port.postMessage({
         event: Event.totalTime,
         payload: event.currentTarget.duration,
-      })}
-      onTimeUpdate={(event) => port?.postMessage({
+      }))}
+      onTimeUpdate={(event) => ports.forEach((port) => port.postMessage({
         event: Event.currentTime,
         payload: event.currentTarget.currentTime,
-      })}
+      }))}
     />
   );
 };
