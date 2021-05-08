@@ -3,15 +3,14 @@ export const enum Event {
   currentTime = 'currentTime',
   status = 'status',
   volume = 'volume',
-  ping = 'ping',
-  parse = 'parse',
-  load = 'load',
-  play = 'play',
-  pause = 'pause',
+  granted = 'granted',
+  index = 'index',
+  musics = 'musics',
+  lyric = 'lyric',
+  lineNumber = 'lineNumber',
 }
 
 export const enum Status {
-  paused = 'paused',
-  playing = 'playing',
-  ended = 'ended',
+  pause = 'pause',
+  play = 'play',
 }

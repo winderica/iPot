@@ -1,30 +1,11 @@
-export class Lyric {
-    artist?: string;
-    album?: string;
-    title?: string;
-    author?: string;
-    by?: string;
-    length?: number;
-    offset = 0;
-    lines: Line[] = [];
-}
-
-class Line {
-    words: Word[] = [];
-    content = '';
-}
-
-class Word {
-  constructor(public time: number, public content: string = '') {
-  }
-}
+import { Line, Lyric } from '../constants/types';
 
 const matchArrayToTime = (match: RegExpMatchArray) => {
   return +(match[1] ?? 0) * 60000 + +(match[2] ?? 0) * 1000 + +(match[3] ?? 0) * 10;
 };
 
 export const parseLrc = (source: string) => {
-  const lyric = new Lyric();
+  const lyric: Lyric = { offset: 0, lines: [] };
   source.split(/\r?\n/).forEach((line) => {
     line = line.trim();
     if (line[0] === '[' && line[1] > '9') {
@@ -43,8 +24,8 @@ export const parseLrc = (source: string) => {
       const content = items[i + 1];
       let j = 0;
       for (const time of items[i].matchAll(/\[(\d+):(\d+).(\d+)]/g)) {
-        lines[j] = lines[j] ?? new Line();
-        lines[j].words.push(new Word(matchArrayToTime(time), content));
+        lines[j] = lines[j] ?? { words: [], content: '' };
+        lines[j].words.push({ time: matchArrayToTime(time), content });
         j++;
       }
     }

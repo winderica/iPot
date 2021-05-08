@@ -8,7 +8,7 @@ export default defineConfig({
         background: 'pages/background.html',
         options: 'pages/options.html',
         popup: 'pages/popup.html',
-        content: 'src/content.ts',
+        content: 'src/content.tsx',
         contentLoader: 'src/contentLoader.ts',
       },
       output: {
