@@ -112,7 +112,14 @@ export const Player: FC = () => {
   const disabled = index === undefined;
   return (
     <>
-      <Snackbar open={shouldPrompt} autoHideDuration={null}>
+      <Snackbar
+        open={shouldPrompt}
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+        autoHideDuration={null}
+      >
         <Alert
           severity='info'
           classes={{
