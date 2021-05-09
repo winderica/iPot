@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from 'react-dom';
 
-import { Content } from './views/Content';
+import { Content } from '@views/content';
 
 const root = document.createElement('div');
 

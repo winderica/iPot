@@ -1,11 +1,11 @@
 import { Box, Grid, Typography } from '@material-ui/core';
 import React, { FC, useCallback, useContext, useEffect, useState } from 'react';
 
-import { Event } from '../constants/enums';
-import { Lyric } from '../constants/types';
-import { PortContext } from '../contexts/port';
-import { usePrevious } from '../hooks/usePrevious';
-import { useStyles } from '../styles/lyricPanel';
+import { Event } from '@constants/enums';
+import { Lyric } from '@constants/types';
+import { PortContext } from '@contexts/port';
+import { usePrevious } from '@hooks/usePrevious';
+import { useStyles } from '@styles/lyricPanel';
 
 export const LyricPanel: FC = () => {
   const port = useContext(PortContext);

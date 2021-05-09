@@ -1,4 +1,4 @@
-import { Line, Lyric } from '../constants/types';
+import { Line, Lyric } from '@constants/types';
 
 const matchArrayToTime = (match: RegExpMatchArray) => {
   return +(match[1] ?? 0) * 60000 + +(match[2] ?? 0) * 1000 + +(match[3] ?? 0) * 10;

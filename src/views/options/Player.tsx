@@ -13,12 +13,12 @@ import {
 import { get, set } from 'idb-keyval';
 import React, { FC, useContext, useEffect, useState } from 'react';
 
-import { LyricPanel } from '../components/LyricPanel';
-import { Event, Status } from '../constants/enums';
-import { MusicMetadata } from '../constants/types';
-import { PortContext } from '../contexts/port';
-import { useAsyncEffect } from '../hooks/useAsyncEffect';
-import { useStyles } from '../styles/options';
+import { LyricPanel } from '@components/LyricPanel';
+import { Event, Status } from '@constants/enums';
+import { MusicMetadata } from '@constants/types';
+import { PortContext } from '@contexts/port';
+import { useAsyncEffect } from '@hooks/useAsyncEffect';
+import { useStyles } from '@styles/options';
 
 export const Player: FC = () => {
   const port = useContext(PortContext);
