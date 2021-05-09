@@ -2,11 +2,10 @@ import { get } from 'idb-keyval';
 import React, { FC, useEffect, useRef, useState } from 'react';
 import { browser } from 'webextension-polyfill-ts';
 
-import { Event, Status } from '../constants/enums';
-import { Lyric, Message, Music, Port } from '../constants/types';
-import { useAsyncEffect } from '../hooks/useAsyncEffect';
-import { usePrevious } from '../hooks/usePrevious';
-import { parseLrc } from '../utils/parseLrc';
+import { Event, Status } from '@constants/enums';
+import { Lyric, Message, Music, Port } from '@constants/types';
+import { useAsyncEffect } from '@hooks/useAsyncEffect';
+import { parseLrc } from '@utils/parseLrc';
 
 type MessageMap = {
   [P in Message['event']]: Extract<Message, { event: P }>['payload'];

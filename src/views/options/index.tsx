@@ -1,17 +1,15 @@
 import { CssBaseline, StyledEngineProvider, ThemeProvider } from '@material-ui/core';
 import React, { FC, StrictMode } from 'react';
-import { browser } from 'webextension-polyfill-ts';
-
-import { Port } from '../constants/types';
-import { PortContext } from '../contexts/port';
-import { useTheme } from '../styles/theme';
 
 import { Player } from './Player';
 
-const port: Port = browser.runtime.connect();
+import { PortContext } from '@contexts/port';
+import { usePort } from '@hooks/usePort';
+import { useTheme } from '@styles/theme';
 
 export const Options: FC = () => {
   const theme = useTheme();
+  const port = usePort();
   return (
     <StrictMode>
       <StyledEngineProvider injectFirst>
