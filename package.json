@@ -24,6 +24,7 @@
     "vite": "^2.2.4"
   },
   "scripts": {
+    "start": "vite build --watch",
     "build": "vite build",
     "lint": "eslint . --ext .js,.ts,.tsx --fix"
   }

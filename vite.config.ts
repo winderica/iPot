@@ -18,6 +18,5 @@ export default defineConfig({
     },
     minify: 'esbuild',
     target: 'esnext',
-    watch: {},
   },
 });
