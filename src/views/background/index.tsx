@@ -9,15 +9,16 @@ import { usePrevious } from '../hooks/usePrevious';
 import { parseLrc } from '../utils/parseLrc';
 
 type MessageMap = {
-  [P in Message['event']]: Extract<Message, { event: P }>['payload']
+  [P in Message['event']]: Extract<Message, { event: P }>['payload'];
+};
+
+const sendOne = <E extends keyof MessageMap>(port: Port, event: E, payload: MessageMap[E]) => {
+  port.postMessage({ event, payload } as Message);
 };
 
 const sendMultiple = <E extends keyof MessageMap>(ports: Iterable<Port>, event: E, payload: MessageMap[E]) => {
   for (const port of ports) {
-    // if (!port.sender?.tab?.active) {
-    //   continue;
-    // }
-    port.postMessage({ event, payload } as Message);
+    sendOne(port, event, payload);
   }
 };
 
@@ -29,9 +30,10 @@ export const Background: FC = () => {
   const [src, setSrc] = useState<string>();
   const [index, setIndex] = useState<number>();
   const [ports, setPorts] = useState(new Set<Port>());
-  const prevPorts = usePrevious(ports, new Set());
+  const [newPort, setNewPort] = useState<Port>();
   useEffect(() => {
     browser.runtime.onConnect.addListener((port: Port) => {
+      setNewPort(port);
       setPorts((prevPorts) => {
         const newPorts = new Set(prevPorts);
         newPorts.add(port);
@@ -90,19 +92,19 @@ export const Background: FC = () => {
     });
   }, []);
   useEffect(() => {
-    if (prevPorts.size >= ports.size || !ref.current) {
-      return;
-    }
-    const newPorts = [...ports].filter((port) => !prevPorts.has(port));
-    sendMultiple(newPorts, Event.status, ref.current.paused ? Status.pause : Status.play);
-    sendMultiple(newPorts, Event.totalTime, ref.current.duration);
-    sendMultiple(newPorts, Event.currentTime, ref.current.currentTime);
-    sendMultiple(newPorts, Event.volume, ref.current.volume);
-    sendMultiple(newPorts, Event.lineNumber, lineNumber);
-    sendMultiple(newPorts, Event.lyric, lyric);
-    sendMultiple(newPorts, Event.musics, musics);
-    sendMultiple(newPorts, Event.index, index);
-  }, [ports]);
+    newPort?.onMessage.addListener((m) => {
+      if (m.event === Event.ping && ref.current) {
+        sendOne(newPort, Event.status, ref.current.paused ? Status.pause : Status.play);
+        sendOne(newPort, Event.totalTime, ref.current.duration);
+        sendOne(newPort, Event.currentTime, ref.current.currentTime);
+        sendOne(newPort, Event.volume, ref.current.volume);
+        sendOne(newPort, Event.lineNumber, lineNumber);
+        sendOne(newPort, Event.lyric, lyric);
+        sendOne(newPort, Event.musics, musics);
+        sendOne(newPort, Event.index, index);
+      }
+    });
+  }, [newPort]);
   useEffect(() => sendMultiple(ports, Event.lyric, lyric), [lyric]);
   useEffect(() => sendMultiple(ports, Event.lineNumber, lineNumber), [lineNumber]);
   useEffect(() => sendMultiple(ports, Event.musics, musics), [musics]);

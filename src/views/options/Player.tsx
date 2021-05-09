@@ -57,6 +57,7 @@ export const Player: FC = () => {
           break;
       }
     });
+    port.postMessage({ event: Event.ping });
   }, [port]);
   useAsyncEffect(async () => {
     if (shouldPrompt) {

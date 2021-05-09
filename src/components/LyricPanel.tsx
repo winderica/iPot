@@ -39,6 +39,7 @@ export const LyricPanel: FC = () => {
           break;
       }
     });
+    port.postMessage({ event: Event.ping });
   }, [port]);
   useEffect(() => {
     if (!lyricPanel || prevLineNumber === lineNumber) {

@@ -8,6 +8,7 @@ export const enum Event {
   musics = 'musics',
   lyric = 'lyric',
   lineNumber = 'lineNumber',
+  ping = 'ping',
 }
 
 export const enum Status {

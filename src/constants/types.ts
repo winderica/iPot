@@ -18,6 +18,7 @@ export type Message =
   | M<Event.index, number | undefined>
   | M<Event.musics, MusicMetadata[]>
   | M<Event.granted, void>
+  | M<Event.ping, void>
   | M<Event.lyric, Lyric | undefined>
   | M<Event.lineNumber, number>
   ;
