@@ -1,6 +1,6 @@
 import { Events, Runtime } from 'webextension-polyfill-ts';
 
-import { Event, Status } from './enums';
+import { Event } from './enums';
 
 type M<E extends Event, P> = P extends void ? {
   event: E;
@@ -13,18 +13,22 @@ type M<E extends Event, P> = P extends void ? {
 export type Message =
   | M<Event.totalTime, number>
   | M<Event.currentTime, number>
-  | M<Event.status, Status>
+  | M<Event.playing, boolean>
+  | M<Event.muted, boolean>
   | M<Event.volume, number>
   | M<Event.index, number | undefined>
   | M<Event.musics, MusicMetadata[]>
   | M<Event.granted, void>
-  | M<Event.ping, void>
+  | M<Event.hello, void>
+  | M<Event.goodbye, void>
   | M<Event.lyric, Lyric | undefined>
   | M<Event.lineNumber, number>
   ;
 
+export type MessageHandler = (message: Message, port: Port) => void | Promise<void>;
+
 export interface Port extends Runtime.Port {
-  onMessage: Events.Event<(message: Message, port: Port) => void | Promise<void>>;
+  onMessage: Events.Event<MessageHandler>;
 
   postMessage(message: Message): void;
 }

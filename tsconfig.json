@@ -17,6 +17,9 @@
     "noImplicitReturns": true,
     "noUnusedParameters": true,
     "paths": {
+      "@apis/*": [
+        "src/apis/*"
+      ],
       "@components/*": [
         "src/components/*"
       ],

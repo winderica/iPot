@@ -1,4 +1,4 @@
-import { Alert, Button, Grid, IconButton, List, ListItem, Slider, Snackbar } from '@material-ui/core';
+import { Alert, Button, Grid, IconButton, List, ListItem, Snackbar } from '@material-ui/core';
 import {
   Forward10,
   Pause,
@@ -14,11 +14,15 @@ import { get, set } from 'idb-keyval';
 import React, { FC, useContext, useEffect, useState } from 'react';
 
 import { LyricPanel } from '@components/LyricPanel';
-import { Event, Status } from '@constants/enums';
-import { MusicMetadata } from '@constants/types';
+import { ProgressBar } from '@components/ProgressBar';
+import { Event } from '@constants/enums';
+import { Lyric, MessageHandler, MusicMetadata } from '@constants/types';
 import { PortContext } from '@contexts/port';
 import { useAsyncEffect } from '@hooks/useAsyncEffect';
 import { useStyles } from '@styles/options';
+import { sendOne } from '@apis/index';
+import { VolumeBar } from '@components/VolumeBar';
+import { SettingsControls } from '@components/SettingsControls';
 
 export const Player: FC = () => {
   const port = useContext(PortContext);
@@ -30,12 +34,14 @@ export const Player: FC = () => {
   const [totalTime, setTotalTime] = useState(Infinity);
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
+  const [lyric, setLyric] = useState<Lyric>();
+  const [lineNumber, setLineNumber] = useState(-1);
   const classes = useStyles();
   useEffect(() => {
     if (!port) {
       return;
     }
-    port.onMessage.addListener((m) => {
+    const handleMessage: MessageHandler = (m) => {
       switch (m.event) {
         case Event.musics:
           setMusics(m.payload);
@@ -49,15 +55,26 @@ export const Player: FC = () => {
         case Event.currentTime:
           setCurrentTime(m.payload);
           break;
-        case Event.status:
-          setPlaying(m.payload === Status.play);
+        case Event.playing:
+          setPlaying(m.payload);
+          break;
+        case Event.muted:
+          setMuted(m.payload);
           break;
         case Event.volume:
           setVolume(m.payload);
           break;
+        case Event.lyric:
+          setLyric(m.payload);
+          break;
+        case Event.lineNumber:
+          setLineNumber(m.payload);
+          break;
       }
-    });
-    port.postMessage({ event: Event.ping });
+    };
+    port.onMessage.addListener(handleMessage);
+    sendOne(port, Event.hello, undefined);
+    return () => port.onMessage.removeListener(handleMessage);
   }, [port]);
   useAsyncEffect(async () => {
     if (shouldPrompt) {
@@ -68,47 +85,16 @@ export const Player: FC = () => {
       setShouldPrompt(true);
       return;
     }
-    port?.postMessage({ event: Event.granted });
+    port && sendOne(port, Event.granted, undefined);
   }, [shouldPrompt]);
-  const changeTime = (time: number, isDelta?: boolean) => () => {
-    setCurrentTime((prevTime) => {
-      if (isDelta) {
-        time += prevTime;
-      }
-      time = Math.min(Math.max(time, 0), totalTime);
-      port?.postMessage({ event: Event.currentTime, payload: time });
-      return time;
-    });
-  };
-  const changeIndex = (index: number, isDelta?: boolean) => () => {
-    setIndex((prevIndex) => {
-      if (isDelta) {
-        if (prevIndex === undefined) {
-          return undefined;
-        }
-        index += prevIndex;
-      }
-      port?.postMessage({ event: Event.index, payload: index });
-      return index;
-    });
-  };
-  const changeVolume = (volume: number) => {
-    port?.postMessage({ event: Event.volume, payload: volume });
-    setVolume(volume);
-    setMuted(false);
-  };
-  const toggleStatus = () => {
-    setPlaying((prevPlaying) => {
-      port?.postMessage({ event: Event.status, payload: prevPlaying ? Status.pause : Status.play });
-      return !prevPlaying;
-    });
-  };
-  const toggleMuted = () => {
-    setMuted((prevMuted) => {
-      port?.postMessage({ event: Event.volume, payload: prevMuted ? volume : 0 });
-      return !prevMuted;
-    });
-  };
+  if (!port) {
+    return null;
+  }
+  const commitTime = (time: number) => sendOne(port, Event.currentTime, time);
+  const changeIndex = (index: number) => () => sendOne(port, Event.index, index);
+  const commitVolume = (volume: number) => sendOne(port, Event.volume, volume);
+  const commitMuted = (muted: boolean) => sendOne(port, Event.muted, muted);
+  const toggleStatus = () => sendOne(port, Event.playing, !playing);
   const disabled = index === undefined;
   return (
     <>
@@ -147,67 +133,44 @@ export const Player: FC = () => {
         <Grid container item minHeight={0} height='100%'>
           <Grid item xs={9} height='100%' overflow='auto'>
             <List>
-              {musics.map(({ name }, index) => (
-                <ListItem button key={index} onClick={changeIndex(index)}>{name}</ListItem>
+              {musics.map(({ name }, i) => (
+                <ListItem button key={i} selected={index === i} onClick={changeIndex(i)}>{name}</ListItem>
               ))}
             </List>
           </Grid>
-          <LyricPanel />
+          <Grid item xs={3} height='100%' overflow='hidden'>
+            <LyricPanel lyric={lyric} lineNumber={lineNumber} />
+          </Grid>
         </Grid>
         <Grid container item alignItems='center'>
           <Grid item>
-            <IconButton disabled={!index} onClick={changeIndex(-1, true)}>
+            <IconButton disabled={!index} onClick={changeIndex(index! - 1)}>
               <SkipPrevious />
             </IconButton>
-          </Grid>
-          <Grid item>
-            <IconButton disabled={disabled} onClick={changeTime(currentTime - 10)}>
+            <IconButton disabled={disabled} onClick={() => commitTime(currentTime - 10)}>
               <Replay10 />
             </IconButton>
-          </Grid>
-          <Grid item>
             <IconButton disabled={disabled} onClick={toggleStatus}>
               {playing ? <Pause /> : <PlayArrow />}
             </IconButton>
-          </Grid>
-          <Grid item>
-            <IconButton disabled={disabled} onClick={changeTime(currentTime + 10)}>
+            <IconButton disabled={disabled} onClick={() => commitTime(currentTime + 10)}>
               <Forward10 />
             </IconButton>
-          </Grid>
-          <Grid item>
-            <IconButton disabled={disabled || index === musics.length - 1} onClick={changeIndex(1, true)}>
+            <IconButton disabled={disabled || index === musics.length - 1} onClick={changeIndex(index! + 1)}>
               <SkipNext />
             </IconButton>
-          </Grid>
-          <Grid item>
-            <IconButton onClick={toggleMuted}>
+            <IconButton onClick={() => commitMuted(!muted)}>
               {muted || !volume ? <VolumeMute /> : volume < 0.5 ? <VolumeDown /> : <VolumeUp />}
             </IconButton>
           </Grid>
-          <Grid item container xs={1} p={1}>
-            <Slider
-              value={muted ? 0 : volume}
-              min={0}
-              max={1}
-              step={0.05}
-              onChange={(_, value) => !Array.isArray(value) && changeVolume(value)}
-              valueLabelDisplay='auto'
-              valueLabelFormat={(i) => ~~(i * 100)}
-            />
+          <Grid container item xs={1} mr={1}>
+            <VolumeBar volume={volume} muted={muted} onVolumeChange={commitVolume} onMutedChange={commitMuted} />
           </Grid>
-          <Grid item container xs p={1}>
-            <Slider
-              disabled={disabled}
-              value={currentTime}
-              min={0}
-              max={totalTime}
-              onChange={(event, value) => event instanceof MouseEvent && !Array.isArray(value) && changeTime(value)()}
-              valueLabelDisplay='auto'
-              valueLabelFormat={(i) =>
-                `${(~~(i / 60)).toString().padStart(2, '0')}:${(~~i % 60).toString().padStart(2, '0')}`
-              }
-            />
+          <Grid container item xs ml={1}>
+            <ProgressBar currentTime={currentTime} totalTime={totalTime} disabled={disabled} onChange={commitTime} />
+          </Grid>
+          <Grid item>
+            <SettingsControls items={[]} />
           </Grid>
         </Grid>
       </Grid>

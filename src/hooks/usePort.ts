@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { browser } from 'webextension-polyfill-ts';
 
+import { Event } from '@constants/enums';
 import { Port } from '@constants/types';
 
 export const usePort = () => {
@@ -8,13 +9,13 @@ export const usePort = () => {
   useEffect(() => {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        setPort(browser.runtime.connect());
+        port?.postMessage({ event: Event.hello });
       } else {
-        setPort((prevPort) => {
-          prevPort?.disconnect();
-          return undefined;
-        });
+        port?.postMessage({ event: Event.goodbye });
       }
+    });
+    port?.onDisconnect.addListener(() => {
+      setPort(undefined);
     });
   }, []);
   return port;

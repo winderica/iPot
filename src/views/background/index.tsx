@@ -2,24 +2,11 @@ import { get } from 'idb-keyval';
 import React, { FC, useEffect, useRef, useState } from 'react';
 import { browser } from 'webextension-polyfill-ts';
 
-import { Event, Status } from '@constants/enums';
-import { Lyric, Message, Music, Port } from '@constants/types';
+import { sendMultiple, sendOne } from '@apis/index';
+import { Event } from '@constants/enums';
+import { Lyric, Music, Port } from '@constants/types';
 import { useAsyncEffect } from '@hooks/useAsyncEffect';
 import { parseLrc } from '@utils/parseLrc';
-
-type MessageMap = {
-  [P in Message['event']]: Extract<Message, { event: P }>['payload'];
-};
-
-const sendOne = <E extends keyof MessageMap>(port: Port, event: E, payload: MessageMap[E]) => {
-  port.postMessage({ event, payload } as Message);
-};
-
-const sendMultiple = <E extends keyof MessageMap>(ports: Iterable<Port>, event: E, payload: MessageMap[E]) => {
-  for (const port of ports) {
-    sendOne(port, event, payload);
-  }
-};
 
 export const Background: FC = () => {
   const ref = useRef<HTMLAudioElement>(null);
@@ -28,35 +15,40 @@ export const Background: FC = () => {
   const [lineNumber, setLineNumber] = useState(-1);
   const [src, setSrc] = useState<string>();
   const [index, setIndex] = useState<number>();
-  const [ports, setPorts] = useState(new Set<Port>());
+  const [activePorts, setActivePorts] = useState(new Set<Port>());
   const [newPort, setNewPort] = useState<Port>();
   useEffect(() => {
     browser.runtime.onConnect.addListener((port: Port) => {
-      setNewPort(port);
-      setPorts((prevPorts) => {
-        const newPorts = new Set(prevPorts);
-        newPorts.add(port);
-        return newPorts;
-      });
       port.onMessage.addListener(async (m) => {
-        if (!ref.current) {
-          return;
-        }
         switch (m.event) {
+          case Event.hello:
+            setNewPort(port);
+            setActivePorts((prevPorts) => new Set(prevPorts).add(port));
+            break;
+          case Event.goodbye:
+            setActivePorts((prevPorts) => {
+              const newPorts = new Set(prevPorts);
+              newPorts.delete(port);
+              return newPorts;
+            });
+            break;
           case Event.index:
             setIndex(m.payload);
             break;
           case Event.currentTime:
-            ref.current.currentTime = m.payload;
+            ref.current && (ref.current.currentTime = m.payload);
             break;
-          case Event.status:
-            m.payload === Status.play ? await ref.current.play() : ref.current.pause();
+          case Event.playing:
+            m.payload ? await ref.current?.play() : ref.current?.pause();
             break;
           case Event.volume:
-            ref.current.volume = m.payload;
+            ref.current && (ref.current.volume = m.payload);
+            break;
+          case Event.muted:
+            ref.current && (ref.current.muted = m.payload);
             break;
           case Event.granted: {
-            if (ref.current.src) {
+            if (ref.current?.src) {
               break;
             }
             const directory = await get<FileSystemDirectoryHandle>('handle');
@@ -81,48 +73,34 @@ export const Background: FC = () => {
           }
         }
       });
-      port.onDisconnect.addListener(() => {
-        setPorts((prevPorts) => {
-          const newPorts = new Set(prevPorts);
-          newPorts.delete(port);
-          return newPorts;
-        });
-      });
     });
   }, []);
   useEffect(() => {
-    newPort?.onMessage.addListener((m) => {
-      if (m.event === Event.ping && ref.current) {
-        sendOne(newPort, Event.status, ref.current.paused ? Status.pause : Status.play);
-        sendOne(newPort, Event.totalTime, ref.current.duration);
-        sendOne(newPort, Event.currentTime, ref.current.currentTime);
-        sendOne(newPort, Event.volume, ref.current.volume);
-        sendOne(newPort, Event.lineNumber, lineNumber);
-        sendOne(newPort, Event.lyric, lyric);
-        sendOne(newPort, Event.musics, musics);
-        sendOne(newPort, Event.index, index);
-      }
-    });
+    if (newPort && ref.current) {
+      sendOne(newPort, Event.playing, !ref.current.paused);
+      sendOne(newPort, Event.totalTime, ref.current.duration);
+      sendOne(newPort, Event.currentTime, ref.current.currentTime);
+      sendOne(newPort, Event.volume, ref.current.volume);
+      sendOne(newPort, Event.muted, ref.current.muted);
+      sendOne(newPort, Event.lyric, lyric);
+      sendOne(newPort, Event.lineNumber, lineNumber);
+      sendOne(newPort, Event.musics, musics);
+      sendOne(newPort, Event.index, index);
+    }
   }, [newPort]);
-  useEffect(() => sendMultiple(ports, Event.lyric, lyric), [lyric]);
-  useEffect(() => sendMultiple(ports, Event.lineNumber, lineNumber), [lineNumber]);
-  useEffect(() => sendMultiple(ports, Event.musics, musics), [musics]);
+  useEffect(() => sendMultiple(activePorts, Event.lyric, lyric), [lyric]);
+  useEffect(() => sendMultiple(activePorts, Event.lineNumber, lineNumber), [lineNumber]);
+  useEffect(() => sendMultiple(activePorts, Event.musics, musics), [musics]);
   useAsyncEffect(async () => {
-    sendMultiple(ports, Event.index, index);
-    if (index === undefined) {
-      setSrc((prevSrc) => {
-        prevSrc && URL.revokeObjectURL(prevSrc);
-        return undefined;
-      });
-      setLyric(undefined);
-      ref.current && (ref.current.currentTime = 0);
-    } else {
+    sendMultiple(activePorts, Event.index, index);
+    setSrc((prevSrc) => {
+      prevSrc && URL.revokeObjectURL(prevSrc);
+      return undefined;
+    });
+    setLyric(undefined);
+    if (index) {
       const { musicFile, lyricFile } = musics[index];
-      const music = await musicFile.getFile();
-      setSrc((prevSrc) => {
-        prevSrc && URL.revokeObjectURL(prevSrc);
-        return URL.createObjectURL(music);
-      });
+      setSrc(URL.createObjectURL(await musicFile.getFile()));
       setLyric(lyricFile ? parseLrc(await (await lyricFile.getFile()).text()) : undefined);
       await ref.current?.play();
     }
@@ -146,15 +124,17 @@ export const Background: FC = () => {
     <audio
       src={src}
       ref={ref}
-      onPlay={() => sendMultiple(ports, Event.status, Status.play)}
-      onPause={() => sendMultiple(ports, Event.status, Status.pause)}
-      onEnded={() => setIndex((prevIndex) => {
-        return prevIndex === undefined || prevIndex + 1 >= musics.length ? undefined : prevIndex + 1;
-      })}
-      onDurationChange={({ currentTarget: { duration } }) => sendMultiple(ports, Event.totalTime, duration)}
+      onPlay={() => sendMultiple(activePorts, Event.playing, true)}
+      onPause={() => sendMultiple(activePorts, Event.playing, false)}
+      onEnded={() => setIndex(index === undefined || index + 1 >= musics.length ? undefined : index + 1)}
+      onDurationChange={({ currentTarget: { duration } }) => sendMultiple(activePorts, Event.totalTime, duration)}
       onTimeUpdate={({ currentTarget: { currentTime } }) => {
         updateLineNumber(currentTime * 1000);
-        sendMultiple(ports, Event.currentTime, currentTime);
+        sendMultiple(activePorts, Event.currentTime, currentTime);
+      }}
+      onVolumeChange={({ currentTarget: { volume, muted } }) => {
+        sendMultiple(activePorts, Event.volume, volume);
+        sendMultiple(activePorts, Event.muted, muted);
       }}
     />
   );

@@ -9,15 +9,16 @@ interface Props {
   line?: Line;
   currentTime: number;
   nextTime: number;
+  playing: boolean;
 }
 
-export const LyricLine: FC<Props> = ({ line, currentTime, nextTime }) => {
+export const LyricLine: FC<Props> = ({ line, currentTime, nextTime, playing }) => {
   const startTime = line?.words[0]?.time ?? 0;
   const duration = nextTime - startTime;
   const svg = useRef<SVGSVGElement | null>(null);
   const fg = useRef<SVGTextElement | null>(null);
   const bg = useRef<SVGTextElement | null>(null);
-  const [, setAnimation] = useState<Animation>();
+  const [animation, setAnimation] = useState<Animation>();
   const classes = useStyles();
   useEffect(() => {
     if (!svg.current || !fg.current || !bg.current || !line) {
@@ -27,24 +28,34 @@ export const LyricLine: FC<Props> = ({ line, currentTime, nextTime }) => {
     svg.current.setAttribute('viewBox', `${x} ${y} ${width} ${height}`);
     svg.current.setAttribute('width', `${width}px`);
     svg.current.setAttribute('height', `${height}px`);
-    if (width === 0 || duration === 0) {
+    if (!width || !duration) {
       return;
     }
-    const boxes = [...fg.current.children].map((i) => (i as SVGGraphicsElement).getBBox());
-    const animation = bg.current.animate({
-      clipPath: boxes.map(({ x }, index) => {
-        const prev = boxes[index - 1];
-        return Math.max(x, prev ? (prev.x + prev.width) : 0);
-      }).map((i) => `inset(0 0 0 ${(i - x) / width * 100}%)`).concat('inset(0 0 0 100%)'),
-      offset: line.words.map(({ time }) => (time - startTime) / duration).concat(1),
-    }, {
-      duration: duration,
-      easing: 'linear',
-      fill: 'forwards',
-    });
+    const animation = bg.current.animate(
+      {
+        clipPath: [...fg.current.children]
+          .map((i) => (i as SVGGraphicsElement).getBBox())
+          .map(({ x }, index, boxes) => {
+            const prev = boxes[index - 1];
+            return Math.max(x, prev ? (prev.x + prev.width) : 0);
+          })
+          .map((i) => `inset(0 0 0 ${(i - x) / width * 100}%)`)
+          .concat('inset(0 0 0 100%)'),
+        offset: line.words.map(({ time }) => (time - startTime) / duration).concat(1),
+      },
+      {
+        duration,
+        easing: 'linear',
+        fill: 'forwards',
+      }
+    );
     animation.currentTime = currentTime - startTime;
+    playing ? animation.play() : animation.pause();
     setAnimation(animation);
   }, [line]);
+  useEffect(() => {
+    playing ? animation?.play() : animation?.pause();
+  }, [playing]);
   return (
     <div className={classes.lineContainer}>
       <svg ref={svg}>
