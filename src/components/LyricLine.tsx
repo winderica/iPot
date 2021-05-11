@@ -40,9 +40,9 @@ export const LyricLine: FC<Props> = ({ line, currentTime, nextTime, playing }) =
             const prev = boxes[index - 1];
             return Math.max(x, prev ? (prev.x + prev.width) : 0);
           })
-          .map((i) => `inset(0 0 0 ${(i - x) / width * 100}%)`)
+          .map((i) => `inset(0 0 0 ${(i - x) * 100 / width}%)`)
           .concat('inset(0 0 0 100%)'),
-        offset: line.words.map(({ time }) => (time - startTime) / duration).concat(1),
+        offset: line.words.map(({ time }) => Math.min((time - startTime) / duration, 1)).concat(1),
       },
       {
         duration,
