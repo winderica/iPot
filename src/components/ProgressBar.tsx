@@ -1,5 +1,5 @@
-import React, { FC, useEffect, useState } from 'react';
 import { Slider } from '@material-ui/core';
+import React, { FC, useEffect, useState } from 'react';
 
 interface Props {
   disabled: boolean;
@@ -35,9 +35,7 @@ export const ProgressBar: FC<Props> = ({ disabled, totalTime, currentTime, onCha
         setDragging(false);
       }}
       valueLabelDisplay='auto'
-      valueLabelFormat={(i) =>
-        `${(~~(i / 60)).toString().padStart(2, '0')}:${(~~i % 60).toString().padStart(2, '0')}`
-      }
+      valueLabelFormat={(i) => `${(~~(i / 60)).toString().padStart(2, '0')}:${(~~i % 60).toString().padStart(2, '0')}`}
     />
   );
 };

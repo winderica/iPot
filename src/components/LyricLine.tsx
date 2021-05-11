@@ -83,12 +83,12 @@ export const LyricLine: FC<Props> = ({ line, currentTime, nextTime, playing }) =
     >
       <defs>
         <linearGradient id='bg-color' x1='0' y1='0' x2='100%' y2='0'>
-          <stop stopColor={blue[500]} offset='0'/>
-          <stop stopColor={green[500]} offset='100%'/>
+          <stop stopColor={blue[500]} offset='0' />
+          <stop stopColor={green[500]} offset='100%' />
         </linearGradient>
         <linearGradient id='fg-color' x1='0' y1='0' x2='100%' y2='0'>
-          <stop stopColor={red[500]} offset='0'/>
-          <stop stopColor={orange[500]} offset='100%'/>
+          <stop stopColor={red[500]} offset='0' />
+          <stop stopColor={orange[500]} offset='100%' />
         </linearGradient>
       </defs>
       <text x='0' y='1em' fill='url(#fg-color)' ref={fg}>

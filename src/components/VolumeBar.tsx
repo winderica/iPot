@@ -1,5 +1,5 @@
-import React, { FC } from 'react';
 import { Slider } from '@material-ui/core';
+import React, { FC } from 'react';
 
 interface Props {
   muted: boolean;
@@ -25,5 +25,5 @@ export const VolumeBar: FC<Props> = ({ muted, volume, onVolumeChange, onMutedCha
       valueLabelDisplay='auto'
       valueLabelFormat={(i) => ~~(i * 100)}
     />
-  )
+  );
 };

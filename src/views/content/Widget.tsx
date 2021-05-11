@@ -1,10 +1,10 @@
 import React, { FC, useContext, useEffect, useState } from 'react';
 
+import { sendOne } from '@apis/index';
 import { LyricLine } from '@components/LyricLine';
 import { Event } from '@constants/enums';
 import { Lyric, MessageHandler } from '@constants/types';
 import { PortContext } from '@contexts/port';
-import { sendOne } from '@apis/index';
 
 export const Widget: FC = () => {
   const port = useContext(PortContext);

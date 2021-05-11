@@ -32,9 +32,12 @@ export const SettingsControls: FC<Props> = ({ items }) => {
               setAnchorEl(null);
               action();
             }}
-          >{name}</MenuItem>
+            key={name}
+          >
+            {name}
+          </MenuItem>
         ))}
       </Menu>
     </>
-  )
-}
+  );
+};

@@ -13,6 +13,7 @@ module.exports = {
   ],
   extends: [
     'eslint:recommended',
+    'plugin:react/recommended',
     'plugin:import/errors',
     'plugin:import/warnings',
     'plugin:import/typescript',
@@ -30,6 +31,17 @@ module.exports = {
     'lines-between-class-members': ['warn', 'always', { exceptAfterSingleLine: true }],
     'no-trailing-spaces': ['warn'],
     'object-curly-spacing': ['warn', 'always'],
+    'react/prop-types': 'off',
+    'react/jsx-closing-bracket-location': ['warn'],
+    'react/jsx-closing-tag-location': ['warn'],
+    'react/jsx-curly-newline': ['warn'],
+    'react/jsx-first-prop-new-line': ['warn'],
+    'react/jsx-tag-spacing': ['warn', {
+      closingSlash: 'never',
+      beforeSelfClosing: 'always',
+      afterOpening: 'never',
+      beforeClosing: 'never',
+    }],
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-unsafe-assignment': 'off',
@@ -66,5 +78,11 @@ module.exports = {
     'import/resolver': {
       typescript: {},
     },
+    react: {
+      version: 'detect'
+    }
   },
+  env: {
+    webextensions: true,
+  }
 };

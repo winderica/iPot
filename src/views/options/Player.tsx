@@ -13,16 +13,16 @@ import {
 import { get, set } from 'idb-keyval';
 import React, { FC, useContext, useEffect, useState } from 'react';
 
+import { sendOne } from '@apis/index';
 import { LyricPanel } from '@components/LyricPanel';
 import { ProgressBar } from '@components/ProgressBar';
+import { SettingsControls } from '@components/SettingsControls';
+import { VolumeBar } from '@components/VolumeBar';
 import { Event } from '@constants/enums';
 import { Lyric, MessageHandler, MusicMetadata } from '@constants/types';
 import { PortContext } from '@contexts/port';
 import { useAsyncEffect } from '@hooks/useAsyncEffect';
 import { useStyles } from '@styles/options';
-import { sendOne } from '@apis/index';
-import { VolumeBar } from '@components/VolumeBar';
-import { SettingsControls } from '@components/SettingsControls';
 
 export const Player: FC = () => {
   const port = useContext(PortContext);
@@ -113,15 +113,18 @@ export const Player: FC = () => {
             action: classes.alertAction,
           }}
           action={
-            <Button size='small' onClick={async () => {
-              const directory = await get<FileSystemDirectoryHandle>('handle');
-              if (directory) {
-                await directory.requestPermission({ mode: 'read' });
-              } else {
-                await set('handle', await window.showDirectoryPicker());
-              }
-              setShouldPrompt(false);
-            }}>
+            <Button
+              size='small'
+              onClick={async () => {
+                const directory = await get<FileSystemDirectoryHandle>('handle');
+                if (directory) {
+                  await directory.requestPermission({ mode: 'read' });
+                } else {
+                  await set('handle', await window.showDirectoryPicker());
+                }
+                setShouldPrompt(false);
+              }}
+            >
               load
             </Button>
           }

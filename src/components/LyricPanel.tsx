@@ -1,6 +1,6 @@
 import { Box, Typography } from '@material-ui/core';
-import React, { FC, useEffect, useRef } from 'react';
 import clsx from 'clsx';
+import React, { FC, useEffect, useRef } from 'react';
 
 import { Lyric } from '@constants/types';
 import { useStyles } from '@styles/lyricPanel';
