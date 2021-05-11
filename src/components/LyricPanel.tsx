@@ -20,7 +20,14 @@ const Panel: FC<Props & { container: HTMLElement }> = ({ lyric, lineNumber, cont
   return (
     <>
       {lyric?.lines.map(({ content }, i) => (
-        <Typography key={i} align='center' className={clsx(lineNumber === i && classes.highlighted)}>{content}</Typography>
+        <Typography
+          key={i}
+          align='center'
+          variant='body2'
+          className={clsx(lineNumber === i && classes.highlighted)}
+        >
+          {content}
+        </Typography>
       ))}
     </>
   );
