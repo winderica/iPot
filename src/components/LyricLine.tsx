@@ -62,10 +62,17 @@ export const LyricLine: FC<Props> = ({ line, currentTime, nextTime, playing }) =
       if (!svg.current) {
         return;
       }
+      svg.current.style.right = 'unset';
+      svg.current.style.bottom = 'unset';
       svg.current.style.left = `${clientX - shift[0]}px`;
       svg.current.style.top = `${clientY - shift[1]}px`;
     };
+    const onMouseUp = () => {
+      setShift(undefined);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
     document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
     return () => document.removeEventListener('mousemove', onMouseMove);
   }, [shift]);
   useEffect(() => {
@@ -79,7 +86,6 @@ export const LyricLine: FC<Props> = ({ line, currentTime, nextTime, playing }) =
         const { left, top } = currentTarget.getBoundingClientRect();
         setShift([clientX - left, clientY - top]);
       }}
-      onMouseUp={() => setShift(undefined)}
     >
       <defs>
         <linearGradient id='bg-color' x1='0' y1='0' x2='100%' y2='0'>
