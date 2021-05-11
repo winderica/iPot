@@ -103,7 +103,8 @@ export const Background: FC = () => {
     });
     setLyric(undefined);
     if (index) {
-      const { musicFile, lyricFile } = musics[index];
+      const { musicFile, lyricFile, name } = musics[index];
+      document.title = name;
       setSrc(URL.createObjectURL(await musicFile.getFile()));
       setLyric(lyricFile ? parseLrc(await (await lyricFile.getFile()).text()) : undefined);
       await ref.current?.play();
