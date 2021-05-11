@@ -19,6 +19,7 @@ export const LyricLine: FC<Props> = ({ line, currentTime, nextTime, playing }) =
   const fg = useRef<SVGTextElement | null>(null);
   const bg = useRef<SVGTextElement | null>(null);
   const [animation, setAnimation] = useState<Animation>();
+  const [shift, setShift] = useState<[number, number]>();
   const classes = useStyles();
   useEffect(() => {
     if (!svg.current || !fg.current || !bg.current || !line) {
@@ -54,30 +55,50 @@ export const LyricLine: FC<Props> = ({ line, currentTime, nextTime, playing }) =
     setAnimation(animation);
   }, [line]);
   useEffect(() => {
+    if (!shift) {
+      return;
+    }
+    const onMouseMove = ({ clientX, clientY }: MouseEvent) => {
+      if (!svg.current) {
+        return;
+      }
+      svg.current.style.left = `${clientX - shift[0]}px`;
+      svg.current.style.top = `${clientY - shift[1]}px`;
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    return () => document.removeEventListener('mousemove', onMouseMove);
+  }, [shift]);
+  useEffect(() => {
     playing ? animation?.play() : animation?.pause();
   }, [playing]);
   return (
-    <div className={classes.lineContainer}>
-      <svg ref={svg}>
-        <defs>
-          <linearGradient id='bg-color' x1='0' y1='0' x2='100%' y2='0'>
-            <stop stopColor={blue[500]} offset='0' />
-            <stop stopColor={green[500]} offset='100%' />
-          </linearGradient>
-          <linearGradient id='fg-color' x1='0' y1='0' x2='100%' y2='0'>
-            <stop stopColor={red[500]} offset='0' />
-            <stop stopColor={orange[500]} offset='100%' />
-          </linearGradient>
-        </defs>
-        <text x='0' y='1em' fill='url(#fg-color)' ref={fg}>
-          {line?.words.map(({ content }, index) => (
-            <Typography component='tspan' variant='h4' key={index}>{content}</Typography>
-          ))}
-        </text>
-        <text x='0' y='1em' fill='url(#bg-color)' ref={bg}>
-          <Typography component='tspan' variant='h4'>{line?.content}</Typography>
-        </text>
-      </svg>
-    </div>
+    <svg
+      ref={svg}
+      className={classes.lineContainer}
+      onMouseDown={({ currentTarget, clientX, clientY }) => {
+        const { left, top } = currentTarget.getBoundingClientRect();
+        setShift([clientX - left, clientY - top]);
+      }}
+      onMouseUp={() => setShift(undefined)}
+    >
+      <defs>
+        <linearGradient id='bg-color' x1='0' y1='0' x2='100%' y2='0'>
+          <stop stopColor={blue[500]} offset='0'/>
+          <stop stopColor={green[500]} offset='100%'/>
+        </linearGradient>
+        <linearGradient id='fg-color' x1='0' y1='0' x2='100%' y2='0'>
+          <stop stopColor={red[500]} offset='0'/>
+          <stop stopColor={orange[500]} offset='100%'/>
+        </linearGradient>
+      </defs>
+      <text x='0' y='1em' fill='url(#fg-color)' ref={fg}>
+        {line?.words.map(({ content }, index) => (
+          <Typography component='tspan' variant='h4' key={index}>{content}</Typography>
+        ))}
+      </text>
+      <text x='0' y='1em' fill='url(#bg-color)' ref={bg}>
+        <Typography component='tspan' variant='h4'>{line?.content}</Typography>
+      </text>
+    </svg>
   );
 };

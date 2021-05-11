@@ -4,7 +4,9 @@ export const useStyles = makeStyles(() => ({
   lineContainer: {
     position: 'fixed',
     bottom: 0,
-    left: '50vw',
-    transform: 'translateX(-50%)',
+    width: '100vw',
+    zIndex: 10000,
+    userSelect: 'none',
+    cursor: 'move',
   },
 }));
