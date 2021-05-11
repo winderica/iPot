@@ -3,6 +3,7 @@ import React, { FC, useEffect, useRef, useState } from 'react';
 import { browser } from 'webextension-polyfill-ts';
 
 import { sendMultiple, sendOne } from '@apis/index';
+import { SUPPORTED_AUDIO_FORMATS, SUPPORTED_LYRIC_FORMATS } from '@constants/consts';
 import { Event } from '@constants/enums';
 import { Lyric, Music, Port } from '@constants/types';
 import { useAsyncEffect } from '@hooks/useAsyncEffect';
@@ -58,10 +59,13 @@ export const Background: FC = () => {
               if (handle.kind === 'directory') {
                 continue;
               }
-              const name = filename.slice(0, filename.lastIndexOf('.'));
-              if (filename.endsWith('.lrc')) {
+              const dot = filename.lastIndexOf('.');
+              const name = filename.slice(0, dot);
+              const extension = filename.slice(dot + 1);
+              if (SUPPORTED_LYRIC_FORMATS.has(extension)) {
                 lyrics[name] = handle;
-              } else {
+              }
+              if (SUPPORTED_AUDIO_FORMATS.has(extension)) {
                 musics[name] = handle;
               }
             }
