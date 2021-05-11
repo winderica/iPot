@@ -29,6 +29,7 @@ module.exports = {
     'padded-blocks': ['warn', 'never'],
     'lines-between-class-members': ['warn', 'always', { exceptAfterSingleLine: true }],
     'no-trailing-spaces': ['warn'],
+    'object-curly-spacing': ['warn', 'always'],
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-unsafe-assignment': 'off',
